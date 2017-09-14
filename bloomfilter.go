@@ -1,9 +1,12 @@
 package inbloom
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"hash"
 	"hash/fnv"
+	"io"
 	"math"
 )
 
@@ -89,4 +92,21 @@ func NewFilter(p float64, n int64) BloomFilter {
 	return BloomFilter{vector: make([]byte, int64(m)),
 		baseHashFn:     fnv.New64(),
 		numberOfHashes: k}
+}
+
+func Inflate(reader io.Reader) *BloomFilter {
+
+	var filter BloomFilter
+	dec := gob.NewDecoder(reader)
+	dec.Decode(&filter)
+	return &filter
+}
+
+func Deflate(filter *BloomFilter) []byte {
+
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	enc.Encode(filter)
+
+	return buffer.Bytes()
 }
