@@ -16,7 +16,7 @@ type BloomFilter struct {
 	numberOfHashes uint64
 }
 
-func (self *BloomFilter) Add(obj []byte) error {
+func (self *BloomFilter) Add(obj *[]byte) error {
 
 	hashValues, err := self.getHashVector(obj)
 
@@ -27,11 +27,11 @@ func (self *BloomFilter) Add(obj []byte) error {
 	return err
 }
 
-func (self *BloomFilter) getHashVector(obj []byte) ([]uint64, error) {
+func (self *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
 
 	defer self.baseHashFn.Reset()
 
-	_, e1 := self.baseHashFn.Write(obj)
+	_, e1 := self.baseHashFn.Write(*obj)
 
 	if e1 != nil {
 		empty := make([]uint64, 0)
@@ -52,7 +52,7 @@ func (self *BloomFilter) getHashVector(obj []byte) ([]uint64, error) {
 	return hashValues, nil
 }
 
-func (self *BloomFilter) Test(obj []byte) (bool, error) {
+func (self *BloomFilter) Test(obj *[]byte) (bool, error) {
 
 	hashVales, e := self.getHashVector(obj)
 
