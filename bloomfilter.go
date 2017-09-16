@@ -10,55 +10,58 @@ import (
 	"math"
 )
 
+//BloomFilter is a space-efficient probabilistic data structure, conceived by Burton Howard Bloom in 1970, that is used to test whether an element is a member of a set.
 type BloomFilter struct {
 	vector         []byte
 	baseHashFn     hash.Hash64
 	numberOfHashes uint64
 }
 
-func (self *BloomFilter) Add(obj *[]byte) error {
+//Add an object to the set
+func (filter *BloomFilter) Add(obj *[]byte) error {
 
-	hashValues, err := self.getHashVector(obj)
+	hashValues, err := filter.getHashVector(obj)
 
 	for i := 0; i < len(hashValues); i++ {
 		hashVal := hashValues[i]
-		self.vector[hashVal] = 1
+		filter.vector[hashVal] = 1
 	}
 	return err
 }
 
-func (self *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
+func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
 
-	defer self.baseHashFn.Reset()
+	defer filter.baseHashFn.Reset()
 
-	_, e1 := self.baseHashFn.Write(*obj)
+	_, e1 := filter.baseHashFn.Write(*obj)
 
 	if e1 != nil {
 		empty := make([]uint64, 0)
 		return empty, errors.New("failed to add object to filter")
 	}
 
-	seed1 := self.baseHashFn.Sum64()
+	seed1 := filter.baseHashFn.Sum64()
 	// simulate output of two hash functions that will serve as base hashes for simulating the output of n hash functions
 	upperBits := seed1 >> 32 << 32
 	lowerBits := seed1 >> 32 << 32
-	hashValues := make([]uint64, self.numberOfHashes)
-	for i := uint64(0); i < self.numberOfHashes; i++ {
+	hashValues := make([]uint64, filter.numberOfHashes)
+	for i := uint64(0); i < filter.numberOfHashes; i++ {
 
-		h := (upperBits + lowerBits*i) % self.numberOfHashes
+		h := (upperBits + lowerBits*i) % filter.numberOfHashes
 		hashValues[i] = h
 	}
 
 	return hashValues, nil
 }
 
-func (self *BloomFilter) Test(obj *[]byte) (bool, error) {
+//Test if an element is in the set
+func (filter *BloomFilter) Test(obj *[]byte) (bool, error) {
 
-	hashVales, e := self.getHashVector(obj)
+	hashVales, e := filter.getHashVector(obj)
 
 	for i := 0; i < len(hashVales); i++ {
 		hashVal := hashVales[i]
-		if self.vector[hashVal] == 0 {
+		if filter.vector[hashVal] == 0 {
 			return false, e
 		}
 	}
@@ -94,6 +97,7 @@ func NewFilter(p float64, n int64) BloomFilter {
 		numberOfHashes: k}
 }
 
+//Inflate a deflated BloomFilter from the io.Reader
 func Inflate(reader io.Reader) *BloomFilter {
 
 	var filter BloomFilter
@@ -102,6 +106,7 @@ func Inflate(reader io.Reader) *BloomFilter {
 	return &filter
 }
 
+//Deflate an instance of a BloomFilter into a byte array
 func Deflate(filter *BloomFilter) []byte {
 
 	var buffer bytes.Buffer
