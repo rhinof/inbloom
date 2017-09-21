@@ -97,7 +97,7 @@ func NewFilter(p float64, n int64) BloomFilter {
 	m := -float64(n) * math.Log(p) / math.Pow(math.Ln2, 2)
 	k := uint64(m / float64(n) * math.Ln2)
 
-	return BloomFilter{vector: make([]byte, int64(m)),
+	return BloomFilter{vector: make([]byte, int64(m), int64(m)),
 		baseHashFn:     fnv.New64(),
 		numberOfHashes: k}
 }
