@@ -2,7 +2,6 @@ package inbloom
 
 import (
 	"errors"
-	"fmt"
 	"hash"
 	"hash/fnv"
 	"math"
@@ -37,13 +36,6 @@ func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
 
 	defer filter.baseHashFn.Reset()
 
-	if filter == nil {
-		fmt.Println("filter is null")
-	}
-
-	if filter.baseHashFn == nil {
-		fmt.Println("hash function is null")
-	}
 	_, e1 := filter.baseHashFn.Write(*obj)
 
 	if e1 != nil {
@@ -51,14 +43,20 @@ func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
 		return empty, errors.New("failed to add object to filter")
 	}
 
-	seed1 := filter.baseHashFn.Sum64()
 	// simulate output of two hash functions that will serve as base hashes for simulating the output of n hash functions
+	// based on https://www.eecs.harvard.edu/~michaelm/postscripts/rsa2008.pdf
+
+	// instead of generating 2 hash values we optimize and generate only 1 and splitting it's value
+	// into 2 distinct values simulating the values of two separate hash functions
+	seed1 := filter.baseHashFn.Sum64()
+
 	upperBits := seed1 >> 32 << 32
 	lowerBits := seed1 >> 32 << 32
 	hashValues := make([]uint64, filter.numberOfHashes)
+
 	for i := uint64(0); i < filter.numberOfHashes; i++ {
 
-		h := (upperBits + lowerBits*i) % filter.numberOfHashes
+		h := (upperBits + lowerBits*i + uint64(math.Pow(float64(i), 2))) % filter.numberOfHashes
 		hashValues[i] = h
 	}
 
