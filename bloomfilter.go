@@ -8,6 +8,12 @@ import (
 	"math"
 )
 
+//ProbabilisticSet represents an abstraction of a Probabilistic
+type ProbabilisticSet interface {
+	Add(obj *[]byte) error
+	Test(obj *[]byte) (bool, error)
+}
+
 //BloomFilter is a space-efficient probabilistic data structure, conceived by Burton Howard Bloom in 1970, that is used to test whether an element is a member of a set.
 type BloomFilter struct {
 	vector         []byte
@@ -16,7 +22,7 @@ type BloomFilter struct {
 }
 
 //Add an object to the set
-func (filter *BloomFilter) Add(obj *[]byte) error {
+func (filter BloomFilter) Add(obj *[]byte) error {
 
 	hashValues, err := filter.getHashVector(obj)
 
@@ -60,7 +66,7 @@ func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
 }
 
 //Test if an element is in the set
-func (filter *BloomFilter) Test(obj *[]byte) (bool, error) {
+func (filter BloomFilter) Test(obj *[]byte) (bool, error) {
 
 	hashVales, e := filter.getHashVector(obj)
 
@@ -76,7 +82,7 @@ func (filter *BloomFilter) Test(obj *[]byte) (bool, error) {
 
 //NewFilter creates a new BloomFilter. p is the error rate
 //and n is the estimated number of elements that will be handled by the filter
-func NewFilter(p float64, n int64) BloomFilter {
+func NewFilter(p float64, n int64) ProbabilisticSet {
 
 	/*
 		Given:
