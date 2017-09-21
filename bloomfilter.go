@@ -1,12 +1,10 @@
 package inbloom
 
 import (
-	"bytes"
-	"encoding/gob"
 	"errors"
+	"fmt"
 	"hash"
 	"hash/fnv"
-	"io"
 	"math"
 )
 
@@ -33,6 +31,13 @@ func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
 
 	defer filter.baseHashFn.Reset()
 
+	if filter == nil {
+		fmt.Println("filter is null")
+	}
+
+	if filter.baseHashFn == nil {
+		fmt.Println("hash function is null")
+	}
 	_, e1 := filter.baseHashFn.Write(*obj)
 
 	if e1 != nil {
@@ -95,23 +100,4 @@ func NewFilter(p float64, n int64) BloomFilter {
 	return BloomFilter{vector: make([]byte, int64(m)),
 		baseHashFn:     fnv.New64(),
 		numberOfHashes: k}
-}
-
-//Inflate a deflated BloomFilter from the io.Reader
-func Inflate(reader io.Reader) *BloomFilter {
-
-	var filter BloomFilter
-	dec := gob.NewDecoder(reader)
-	dec.Decode(&filter)
-	return &filter
-}
-
-//Deflate an instance of a BloomFilter into a byte array
-func Deflate(filter *BloomFilter) []byte {
-
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	enc.Encode(filter)
-
-	return buffer.Bytes()
 }

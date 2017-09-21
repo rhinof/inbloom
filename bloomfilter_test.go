@@ -51,26 +51,3 @@ func TestDataIsInFilterReturnsTrue(t *testing.T) {
 	}
 
 }
-
-func Testserializing(t *testing.T) {
-
-	data := bytes.NewBufferString("rhinof is on the moo").Bytes()
-	f := bytes.NewBufferString("not if filter").Bytes()
-
-	filter := NewFilter(0.1, 10000)
-	filter.Add(&data)
-	deflated := Deflate(&filter)
-
-	buffer := bytes.NewBuffer(deflated)
-	inflatedFilter := Inflate(buffer)
-	result, _ := inflatedFilter.Test(&data)
-	result1, _ := inflatedFilter.Test(&f)
-
-	if result1 == true {
-		t.Fail()
-	}
-	if result == false {
-		t.Fail()
-	}
-
-}
