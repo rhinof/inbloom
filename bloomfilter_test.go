@@ -51,3 +51,24 @@ func TestDataIsInFilterReturnsTrue(t *testing.T) {
 	}
 
 }
+
+func BenchmarkFilter(b *testing.B) {
+
+	filter := NewFilter(0.01, 100000)
+
+	for i := 0; i < 100000; i++ {
+
+		data := bytes.NewBufferString("rhinof is on the moo" + string(i)).Bytes()
+
+		err := filter.Add(&data)
+		if err != nil {
+			b.Fail()
+		}
+
+		result, _ := filter.Test(&data)
+
+		if result == false {
+			b.Fail()
+		}
+	}
+}

@@ -56,7 +56,7 @@ func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
 
 	for i := uint64(0); i < filter.numberOfHashes; i++ {
 
-		h := (upperBits + lowerBits*i + uint64(math.Pow(float64(i), 2))) % filter.numberOfHashes
+		h := (upperBits + lowerBits*i + uint64(i*i)) % filter.numberOfHashes
 		hashValues[i] = h
 	}
 
