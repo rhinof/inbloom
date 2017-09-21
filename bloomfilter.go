@@ -16,7 +16,7 @@ type ProbabilisticSet interface {
 
 //BloomFilter is a space-efficient probabilistic data structure, conceived by Burton Howard Bloom in 1970, that is used to test whether an element is a member of a set.
 type BloomFilter struct {
-	vector         []byte
+	vector         []bool
 	baseHashFn     hash.Hash64
 	numberOfHashes uint64
 }
@@ -28,7 +28,7 @@ func (filter BloomFilter) Add(obj *[]byte) error {
 
 	for i := 0; i < len(hashValues); i++ {
 		hashVal := hashValues[i]
-		filter.vector[hashVal] = 1
+		filter.vector[hashVal] = true
 	}
 	return err
 }
@@ -71,7 +71,7 @@ func (filter BloomFilter) Test(obj *[]byte) (bool, error) {
 
 	for i := 0; i < len(hashVales); i++ {
 		hashVal := hashVales[i]
-		if filter.vector[hashVal] == 0 {
+		if filter.vector[hashVal] == false {
 			return false, e
 		}
 	}
@@ -125,7 +125,7 @@ func NewFilter(p float64, n int64) (filter ProbabilisticSet, e error) {
 	k := uint64(m / float64(n) * math.Ln2)
 	sliceLength := int64(m)
 
-	bf := BloomFilter{vector: make([]byte, sliceLength),
+	bf := BloomFilter{vector: make([]bool, sliceLength),
 		baseHashFn:     fnv.New64(),
 		numberOfHashes: k}
 
