@@ -5,6 +5,7 @@ import (
 	"hash"
 	"hash/fnv"
 	"math"
+	"strings"
 )
 
 //ProbabilisticSet represents an abstraction of a Probabilistic
@@ -80,7 +81,7 @@ func (filter BloomFilter) Test(obj *[]byte) (bool, error) {
 
 //NewFilter creates a new BloomFilter. p is the error rate
 //and n is the estimated number of elements that will be handled by the filter
-func NewFilter(p float64, n int64) ProbabilisticSet {
+func NewFilter(p float64, n int64) (filter ProbabilisticSet, e error) {
 
 	/*
 		Given:
@@ -98,10 +99,36 @@ func NewFilter(p float64, n int64) ProbabilisticSet {
 
 	*/
 
+	defer func() {
+
+		if r := recover(); r != nil {
+
+			filter = nil
+			err, ok := r.(error)
+
+			if ok {
+				msg := err.Error()
+				if strings.Contains(msg, "makeslice: len out of range") {
+					e = errors.New("failed to create BloomFilter. either reduce error rate or maximum estimated elements in filter ")
+				} else {
+					e = err
+				}
+
+			} else {
+				e = errors.New("failed to create BloomFilter")
+			}
+
+		}
+	}()
+
 	m := -float64(n) * math.Log(p) / math.Pow(math.Ln2, 2)
 	k := uint64(m / float64(n) * math.Ln2)
+	sliceLength := int64(m)
 
-	return &BloomFilter{vector: make([]byte, int64(m), int64(m)),
+	bf := BloomFilter{vector: make([]byte, sliceLength),
 		baseHashFn:     fnv.New64(),
 		numberOfHashes: k}
+
+	return bf, nil
+
 }
