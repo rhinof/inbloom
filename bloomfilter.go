@@ -12,25 +12,46 @@ import (
 type ProbabilisticSet interface {
 	Add(obj *[]byte) error
 	Test(obj *[]byte) (bool, error)
+	PoFP() float64
 }
 
 //BloomFilter is a space-efficient probabilistic data structure, conceived by Burton Howard Bloom in 1970, that is used to test whether an element is a member of a set.
 type BloomFilter struct {
-	vector         []bool
-	baseHashFn     hash.Hash64
-	numberOfHashes uint64
+	bits            []bool
+	baseHashFn      hash.Hash64
+	numberOfHashes  uint64
+	insertedElemnts uint64
 }
 
 //Add an object to the set
-func (filter BloomFilter) Add(obj *[]byte) error {
+func (filter *BloomFilter) Add(obj *[]byte) error {
 
 	hashValues, err := filter.getHashVector(obj)
-
+	neverSeen := false
 	for i := 0; i < len(hashValues); i++ {
-		hashVal := hashValues[i]
-		filter.vector[hashVal] = true
+		index := hashValues[i]
+		if filter.bits[index] == false {
+			neverSeen = true
+			filter.bits[index] = true
+		}
+	}
+
+	if neverSeen {
+		// track number of inserted elements so we can calculate actual error rate
+		filter.insertedElemnts++
 	}
 	return err
+}
+
+//PoFP returns the probobility of false positives given the saturation of the filter
+func (filter *BloomFilter) PoFP() float64 {
+
+	k := float64(filter.numberOfHashes)
+	n := float64(filter.insertedElemnts)
+	m := float64(len(filter.bits))
+
+	// https://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
+	return math.Pow(1-math.Pow(math.Log2E, (-k*n)/m), k)
 }
 
 func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
@@ -52,12 +73,12 @@ func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
 	seed1 := filter.baseHashFn.Sum64()
 
 	upperBits := seed1 >> 32 << 32
-	lowerBits := seed1 >> 32 << 32
+	lowerBits := seed1 << 32 >> 32
 	hashValues := make([]uint64, filter.numberOfHashes)
 
 	for i := uint64(0); i < filter.numberOfHashes; i++ {
 
-		h := (upperBits + lowerBits*i + uint64(i*i)) % filter.numberOfHashes
+		h := (upperBits + lowerBits*i + uint64(i*i)) % uint64(len(filter.bits))
 		hashValues[i] = h
 	}
 
@@ -71,7 +92,7 @@ func (filter BloomFilter) Test(obj *[]byte) (bool, error) {
 
 	for i := 0; i < len(hashVales); i++ {
 		hashVal := hashVales[i]
-		if filter.vector[hashVal] == false {
+		if filter.bits[hashVal] == false {
 			return false, e
 		}
 	}
@@ -125,10 +146,10 @@ func NewFilter(p float64, n int64) (filter ProbabilisticSet, e error) {
 	k := uint64(m / float64(n) * math.Ln2)
 	sliceLength := int64(m)
 
-	bf := BloomFilter{vector: make([]bool, sliceLength),
+	bf := BloomFilter{bits: make([]bool, sliceLength),
 		baseHashFn:     fnv.New64(),
 		numberOfHashes: k}
 
-	return bf, nil
+	return &bf, nil
 
 }

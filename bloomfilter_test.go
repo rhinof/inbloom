@@ -44,7 +44,9 @@ func TestDataIsInFilterReturnsTrue(t *testing.T) {
 		t.Errorf("%s", e)
 		t.FailNow()
 	}
+
 	err := filter.Add(&data)
+
 	if err != nil {
 
 		t.Fail()
@@ -54,6 +56,26 @@ func TestDataIsInFilterReturnsTrue(t *testing.T) {
 
 	if result == false {
 		t.Fail()
+	}
+
+}
+
+func TestPoFPInRangeWhenFilterHalfFull(t *testing.T) {
+
+	n := int64(100000)
+	p := 0.01
+	filter, _ := NewFilter(p, n)
+
+	for i := 0; i <= int(n/2); i++ {
+		data := bytes.NewBufferString("rhinof is on the moo" + string(i)).Bytes()
+		filter.Add(&data)
+	}
+
+	pofp := filter.PoFP()
+
+	if pofp > p {
+		t.Fail()
+
 	}
 
 }
