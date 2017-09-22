@@ -51,7 +51,7 @@ func (filter *BloomFilter) PoFP() float64 {
 	m := float64(len(filter.bits))
 
 	// https://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
-	return math.Pow(1-math.Pow(math.Log2E, (-k*n)/m), k)
+	return math.Pow(1-math.Pow(math.E, (-k*n)/m), k)
 }
 
 func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
@@ -104,22 +104,6 @@ func (filter BloomFilter) Test(obj *[]byte) (bool, error) {
 //and n is the estimated number of elements that will be handled by the filter
 func NewFilter(p float64, n int64) (filter ProbabilisticSet, e error) {
 
-	/*
-		Given:
-
-		n: how many items you expect to have in your filter (e.g. 216,553)
-		p: your acceptable false positive rate {0..1} (e.g. 0.01 → 1%)
-		we want to calculate:
-
-		m: the number of bits needed in the bloom filter
-		k: the number of hash functions we should apply
-		The formulas:
-
-		m = -n*ln(p) / (ln(2)^2) the number of bits
-		k = m/n * ln(2) the number of hash functions
-
-	*/
-
 	defer func() {
 
 		if r := recover(); r != nil {
@@ -141,6 +125,22 @@ func NewFilter(p float64, n int64) (filter ProbabilisticSet, e error) {
 
 		}
 	}()
+
+	/*
+		Given:
+
+		n: how many items you expect to have in your filter (e.g. 216,553)
+		p: your acceptable false positive rate {0..1} (e.g. 0.01 → 1%)
+		we want to calculate:
+
+		m: the number of bits needed in the bloom filter
+		k: the number of hash functions we should apply
+		The formulas:
+
+		m = -n*ln(p) / (ln(2)^2) the number of bits
+		k = m/n * ln(2) the number of hash functions
+
+	*/
 
 	m := -float64(n) * math.Log(p) / math.Pow(math.Ln2, 2)
 	k := uint64(m / float64(n) * math.Ln2)
