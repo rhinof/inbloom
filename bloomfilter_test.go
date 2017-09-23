@@ -2,6 +2,7 @@ package inbloom
 
 import (
 	"bytes"
+	"crypto/rand"
 	"testing"
 )
 
@@ -60,22 +61,23 @@ func TestDataIsInFilterReturnsTrue(t *testing.T) {
 
 }
 
-func TestPoFPInRangeWhenFilterHalfFull(t *testing.T) {
+func TestPoFPInRange(t *testing.T) {
 
-	n := int64(100000)
+	n := 100000
 	p := 0.01
 	filter, _ := NewFilter(p, n)
+	i := 0
 
-	for i := 0; i <= int(n/2); i++ {
-		data := bytes.NewBufferString("rhinof is on the moo" + string(i)).Bytes()
+	for filter.PoFP() <= p {
+		data := make([]byte, 30)
+		rand.Read(data)
 		filter.Add(&data)
+		i++
+
 	}
 
-	pofp := filter.PoFP()
-
-	if pofp > p {
-		t.Fail()
-
+	if float64(n)*float64(0.9) > float64(i) {
+		t.Fatal("filter error rate wasn't in acceptable range")
 	}
 
 }

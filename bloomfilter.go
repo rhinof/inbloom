@@ -11,8 +11,9 @@ import (
 //ProbabilisticSet represents an abstraction of a Probabilistic
 type ProbabilisticSet interface {
 	Add(obj *[]byte) error
-	Test(obj *[]byte) (bool, error)
+
 	PoFP() float64
+	Test(obj *[]byte) (bool, error)
 }
 
 //BloomFilter is a space-efficient probabilistic data structure, conceived by Burton Howard Bloom in 1970, that is used to test whether an element is a member of a set.
@@ -20,27 +21,29 @@ type BloomFilter struct {
 	bits            []bool
 	baseHashFn      hash.Hash64
 	numberOfHashes  uint64
-	insertedElemnts uint64
+	insertedElemnts float64
 }
 
 //Add an object to the set
 func (filter *BloomFilter) Add(obj *[]byte) error {
 
+	filter.insertedElemnts++
 	hashValues, err := filter.getHashVector(obj)
-	neverSeen := false
+
 	for i := 0; i < len(hashValues); i++ {
 		index := hashValues[i]
-		if filter.bits[index] == false {
-			neverSeen = true
-			filter.bits[index] = true
-		}
+		filter.bits[index] = true
 	}
 
-	if neverSeen {
-		// track number of inserted elements so we can calculate actual error rate
-		filter.insertedElemnts++
-	}
 	return err
+}
+
+//FillRatio returns
+func (filter *BloomFilter) FillRatio() float64 {
+
+	// 1-(1 - 1/m)^n
+	fr := 1 - math.Pow(1-1/float64(len(filter.bits)), filter.insertedElemnts)
+	return fr
 }
 
 //PoFP returns the probobility of false positives given the saturation of the filter
@@ -52,6 +55,21 @@ func (filter *BloomFilter) PoFP() float64 {
 
 	// https://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
 	return math.Pow(1-math.Pow(math.E, (-k*n)/m), k)
+}
+
+//Test if an element is in the set
+func (filter BloomFilter) Test(obj *[]byte) (bool, error) {
+
+	hashVales, e := filter.getHashVector(obj)
+
+	for i := 0; i < len(hashVales); i++ {
+		hashVal := hashVales[i]
+		if filter.bits[hashVal] == false {
+			return false, e
+		}
+	}
+
+	return true, e
 }
 
 func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
@@ -85,24 +103,9 @@ func (filter *BloomFilter) getHashVector(obj *[]byte) ([]uint64, error) {
 	return hashValues, nil
 }
 
-//Test if an element is in the set
-func (filter BloomFilter) Test(obj *[]byte) (bool, error) {
-
-	hashVales, e := filter.getHashVector(obj)
-
-	for i := 0; i < len(hashVales); i++ {
-		hashVal := hashVales[i]
-		if filter.bits[hashVal] == false {
-			return false, e
-		}
-	}
-
-	return true, e
-}
-
 //NewFilter creates a new BloomFilter. p is the error rate
 //and n is the estimated number of elements that will be handled by the filter
-func NewFilter(p float64, n int64) (filter ProbabilisticSet, e error) {
+func NewFilter(p float64, n int) (filter ProbabilisticSet, e error) {
 
 	defer func() {
 
